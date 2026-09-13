@@ -1,0 +1,40 @@
+name: Telegram Bot - 24/7
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: bot-runner
+  cancel-in-progress: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install telethon
+        run: pip install telethon
+
+      - name: Run the bot (about 5h45m)
+        run: timeout 345m python bot.py
+
+      - name: Save the database
+        if: always()
+        run: |
+          git config user.name "bot-server"
+          git config user.email "bot@users.noreply.github.com"
+          git add bot_database.db bot_main.session 2>/dev/null || true
+          git commit -m "Updating bot data" || echo "No data changes"
+          git push || echo "Nothing to push"
+
+      - name: Sleep a bit (to not hit limits)
+        run: sleep 60
